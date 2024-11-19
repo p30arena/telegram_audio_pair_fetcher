@@ -63,7 +63,9 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
     if (headRes.status % 100 === 3) {
       fileUrl = headRes.headers["location"];
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error(e);
+  }
 
   const response = await axios({
     url: fileUrl,
