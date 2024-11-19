@@ -59,6 +59,9 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
     url: fileUrl,
     method: "GET",
     responseType: "stream",
+    beforeRedirect: (options, { headers }) => {
+      console.log(headers);
+    },
   });
 
   const writer = fs.createWriteStream(fileName);
