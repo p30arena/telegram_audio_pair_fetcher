@@ -60,23 +60,25 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
   } catch (e) {
     const status = e?.response?.status;
     const location = e?.response?.headers?.location;
-    console.log(status)
-    console.log(location)
     if (location && status && Math.trunc(status / 100) === 3) {
-      console.log('changing fileUrl')
       fileUrl = location;
     }
   }
 
-  const response = await axios({
-    url: fileUrl,
-    method: "GET",
-    responseType: "stream",
-    beforeRedirect: (options, { headers, statusCode }) => {
-      console.log(statusCode);
-      console.log(headers);
-    },
-  });
+  let response;
+  try {
+    response = await axios({
+      url: fileUrl,
+      method: "GET",
+      responseType: "stream",
+      maxRedirects: 0,
+    });
+  } catch (e) {
+    const status = e?.response?.status;
+    if (status && Math.trunc(status / 100) === 3) {
+      response = e.response;
+    }
+  }
 
   const writer = fs.createWriteStream(fileName);
 
