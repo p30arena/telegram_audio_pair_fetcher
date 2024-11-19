@@ -3,7 +3,13 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const bot = new Telegraf(process.env.BOT_TOKEN, {
+  telegram: process.env.https_proxy
+    ? {
+        agent: new require("https-proxy-agent")(process.env.https_proxy),
+      }
+    : undefined,
+});
 const updatesFile = path.join("./out/", "updates.json");
 
 // Function to fetch and save updates
