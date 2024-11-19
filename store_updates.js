@@ -1,9 +1,10 @@
-const { Telegraf } = require('telegraf');
-const fs = require('fs');
-require('dotenv').config();
+const { Telegraf } = require("telegraf");
+const fs = require("fs");
+const path = require("path");
+require("dotenv").config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const updates_file = 'out/updates.json';
+const updatesFile = path.join("./out/", "updates.json");
 
 // Function to fetch and save updates
 (async () => {
@@ -20,14 +21,18 @@ const updates_file = 'out/updates.json';
 
   console.log(`Fetched ${allUpdates.length} updates.`);
 
-  if(!allUpdates.length) return;
+  if (!allUpdates.length) return;
 
-  if(fs.existsSync(updates_file)) {
-    const prev = JSON.parse(fs.readFileSync(updates_file).toString());
+  if (fs.existsSync(updatesFile)) {
+    const prev = JSON.parse(
+      fs.readFileSync(updatesFile, { encoding: "utf-8" }).toString()
+    );
     allUpdates = [...prev, ...allUpdates];
   }
 
   // Save updates to a JSON file
-  fs.writeFileSync(updates_file, JSON.stringify(allUpdates, null, 2));
-  console.log('Updates saved to updates.json');
+  fs.writeFileSync(updatesFile, JSON.stringify(allUpdates, null, 2), {
+    encoding: "utf-8",
+  });
+  console.log("Updates saved to updates.json");
 })();
