@@ -1,7 +1,7 @@
 const { Telegraf } = require("telegraf");
 const fs = require("fs");
 const path = require("path");
-const HttpsProxyAgent = require("https-proxy-agent");
+const { HttpsProxyAgent } = require("https-proxy-agent");
 require("dotenv").config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN, {

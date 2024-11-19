@@ -2,7 +2,7 @@ const { Telegraf } = require("telegraf");
 let axios = require("axios");
 const fs = require("fs");
 const path = require("path");
-const HttpsProxyAgent = require("https-proxy-agent");
+const { HttpsProxyAgent } = require("https-proxy-agent");
 require("dotenv").config();
 
 let proxyAgent;
