@@ -60,9 +60,7 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
   } catch (e) {
     const status = e?.response?.status;
     const location = e?.response?.headers?.location;
-    console.log(status);
-    console.log(location);
-    if (location && status && status % 100 === 3) {
+    if (location && status && Math.trunc(status / 100)) {
       fileUrl = location;
     }
   }
