@@ -3,6 +3,7 @@ const fs = require('fs');
 require('dotenv').config();
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
+const updates_file = 'out/updates.json';
 
 // Function to fetch and save updates
 (async () => {
@@ -21,7 +22,12 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
 
   if(!allUpdates.length) return;
 
+  if(fs.existsSync(updates_file)) {
+    const prev = JSON.parse(fs.readFileSync(updates_file).toString());
+    allUpdates = [...prev, ...allUpdates];
+  }
+
   // Save updates to a JSON file
-  fs.writeFileSync('out/updates.json', JSON.stringify(allUpdates, null, 2));
+  fs.writeFileSync(updates_file, JSON.stringify(allUpdates, null, 2));
   console.log('Updates saved to updates.json');
 })();
