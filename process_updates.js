@@ -48,7 +48,7 @@ async function downloadFile(fileId, fileUniqueId, mimeType) {
 
 // Function to save the resultList to a JSON file
 function saveResultList() {
-  const outputFile = path.join(__dirname, 'result_list.json');
+  const outputFile = path.join(__dirname, 'out/result_list.json');
   fs.writeFileSync(outputFile, JSON.stringify(resultList, null, 2));
   console.log(`Result list saved to ${outputFile}`);
 }
@@ -56,7 +56,7 @@ function saveResultList() {
 // Main function to process updates from updates.json
 (async () => {
   // Load updates from the JSON file
-  const updatesData = fs.readFileSync('updates.json', 'utf-8');
+  const updatesData = fs.readFileSync('out/updates.json', 'utf-8');
   const allUpdates = JSON.parse(updatesData);
 
   console.log(`Processing ${allUpdates.length} updates.`);

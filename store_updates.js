@@ -9,7 +9,7 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
   let offset = 0;
   let allUpdates = [];
   while (true) {
-    const updates = await bot.telegram.getUpdates(offset, 100, 0);
+    const updates = await bot.telegram.getUpdates(0, 100, offset);
     if (updates.length === 0) {
       break;
     }
@@ -18,6 +18,8 @@ const bot = new Telegraf(process.env.BOT_TOKEN);
   }
 
   console.log(`Fetched ${allUpdates.length} updates.`);
+
+  if(!allUpdates.length) return;
 
   // Save updates to a JSON file
   fs.writeFileSync('out/updates.json', JSON.stringify(allUpdates, null, 2));
