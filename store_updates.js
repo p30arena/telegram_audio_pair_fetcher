@@ -23,12 +23,14 @@ const updatesFile = path.join("./out/", "updates.json");
 
   if (!allUpdates.length) return;
 
-  if (fs.existsSync(updatesFile)) {
+  try {
+    fs.accessSync(updatesFile, fs.constants.R_OK);
+
     const prev = JSON.parse(
       fs.readFileSync(updatesFile, { encoding: "utf-8" }).toString()
     );
     allUpdates = [...prev, ...allUpdates];
-  }
+  } catch (e) {}
 
   // Save updates to a JSON file
   fs.writeFileSync(updatesFile, JSON.stringify(allUpdates, null, 2), {

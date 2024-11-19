@@ -20,14 +20,24 @@ if (!fs.existsSync(downloadDir)) {
 const associations = {};
 
 // Function to download the audio file
-async function downloadFile(fileId, fileUniqueId, mimeType) {
+async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
+  const fileExtension = mimeType && mimeType.includes("ogg") ? ".ogg" : ".mp3";
+  const fileName = path.join(downloadDir, `${fileUniqueId}${fileExtension}`);
+
+  try {
+    fs.accessSync(fileName, fs.constants.R_OK);
+
+    if (fileSize) {
+      if (fs.statfsSync(fileName).bsize === fileSize) {
+        return fileName;
+      }
+    } else {
+      return fileName;
+    }
+  } catch (e) {}
+
   const file = await bot.telegram.getFile(fileId);
   const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
-  const fileExtension = mimeType && mimeType.includes("ogg") ? ".ogg" : ".mp3";
-  const fileName = path.join(
-    downloadDir,
-    `${fileUniqueId}_${Date.now()}${fileExtension}`
-  );
 
   const response = await axios({
     url: fileUrl,
@@ -71,35 +81,57 @@ function saveResultList(results) {
 
     if (!message.chat || message.chat.id !== groupChatId) continue;
 
-    if (message.text) {
+    if (!(message.audio || message.voice)) {
+      const text = message.text || "UNKNOWN";
       // Handle text messages
       if (
         message.reply_to_message &&
-        (message.reply_to_message.audio || message.reply_to_message.voice) &&
-        associations[message.reply_to_message.message_id]
+        (message.reply_to_message.audio || message.reply_to_message.voice)
       ) {
-        associations[message.reply_to_message.message_id].title = message.text;
+        if (associations[message.reply_to_message.message_id]) {
+          associations[message.reply_to_message.message_id].title = text;
+          // console.error("reply ok");
+        } else {
+          console.error("reply to ghost 1");
+        }
       } else {
         associations[message.message_id] = {
           idx,
-          title: message.text,
-          audio: null,
+          title: text,
+          audio: [],
         };
       }
     } else if (message.audio || message.voice) {
       // Handle audio messages
-      if (
+      if (message.reply_to_message && message.reply_to_message.text) {
+        if (associations[message.reply_to_message.message_id]) {
+          associations[message.reply_to_message.message_id].audio = [message];
+          // console.error("reply ok");
+        } else {
+          console.error("reply to ghost 2");
+        }
+      } else if (
         message.reply_to_message &&
-        message.reply_to_message.text &&
-        associations[message.reply_to_message.message_id]
+        (message.reply_to_message.audio || message.reply_to_message.voice)
       ) {
-        associations[message.reply_to_message.message_id].audio =
-          message.audio || message.voice;
+        if (associations[message.reply_to_message.message_id]) {
+        } else {
+          const item = Object.values(associations).find((it) =>
+            it.audio.find(
+              (m) => m.message_id === message.reply_to_message.message_id
+            )
+          );
+          if (item) {
+            item.audio.push(message);
+          } else {
+            console.error("reply to ghost 3");
+          }
+        }
       } else {
         associations[message.message_id] = {
           idx,
           title: null,
-          audio: message.audio || message.voice,
+          audio: [message],
         };
       }
     }
@@ -110,45 +142,74 @@ function saveResultList(results) {
   let results = Object.values(associations);
   results.sort((a, b) => a.idx - b.idx);
 
-  for (let i = 0; i < results.length - 1; i++) {
+  for (let i = 0; i < results.length; i++) {
     const item = results[i];
+    const prevItem = results[i - 1];
     const nextItem = results[i + 1];
 
-    if (!item.audio && !nextItem.title) {
-      // associate them
-      nextItem.title = item.title;
-
-      // skip next
-      i++;
+    if (item.title && !item.audio.length) {
+      if (nextItem && !nextItem.title && nextItem.audio.length) {
+        item.audio = nextItem.audio;
+        nextItem.audio = [];
+      } else if (prevItem && !prevItem.title && prevItem.audio.length) {
+        item.audio = prevItem.audio;
+        prevItem.audio = [];
+      }
     }
   }
 
-  results = results.filter((it) => it.title && it.audio);
+  results = results.filter(
+    (it) => (it.title && it.audio.length) || (!it.title && it.audio.length)
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    const item = results[i];
+    const prevItem = results[i - 1];
+    const nextItem = results[i + 1];
+
+    if (!item.title && item.audio.length) {
+      // voice adjacent to voice
+      if (nextItem && nextItem.title && nextItem.audio.length) {
+        nextItem.audio.push(...item.audio);
+        item.audio = [];
+      } else if (prevItem && prevItem.title && prevItem.audio.length) {
+        prevItem.audio.push(...item.audio);
+        item.audio = [];
+      }
+    }
+  }
+
+  results = results.filter((it) => it.title && it.audio.length);
 
   saveResultList(results);
 
   const lastItem = results[results.length - 1];
 
   for (const item of results) {
-    const audio = item.audio;
+    const audio_list = item.audio.map((item) => item.audio || item.voice);
+    const downloads = [];
 
-    // Download the audio file
-    try {
-      const fileName = await downloadFile(
-        audio.file_id,
-        audio.file_unique_id,
-        audio.mime_type
-      );
+    for (const audio of audio_list) {
+      // Download the audio file
+      try {
+        const fileName = await downloadFile(
+          audio.file_id,
+          audio.file_unique_id,
+          audio.mime_type,
+          audio.file_size
+        );
 
-      item.audio_file = fileName;
-
-      saveResultList(results);
-
-      console.log(`Complete: ${item.idx} / ${lastItem.idx}`);
-    } catch (error) {
-      console.error(`Failed to download audio file: ${error.message}`);
-      console.error(error.stack);
+        downloads.push(fileName);
+      } catch (error) {
+        console.error(`Failed to download audio file: ${error.message}`);
+        // console.error(error.stack);
+        // console.error(audio);
+      }
     }
+
+    item.audio_file = downloads;
+    saveResultList(results);
+    console.log(`Complete: ${item.idx} / ${lastItem.idx}`);
   }
 
   console.log("Processing complete.");
