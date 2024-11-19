@@ -144,7 +144,7 @@ function saveResultList(results) {
 
       saveResultList(results);
 
-      console.log(`Complete: ${item.idx + 1} / ${lastItem.idx + 1}`);
+      console.log(`Complete: ${item.idx} / ${lastItem.idx}`);
     } catch (error) {
       console.error(`Failed to download audio file: ${error.message}`);
       console.error(error.stack);
