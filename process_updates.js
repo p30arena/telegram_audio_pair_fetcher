@@ -76,7 +76,12 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
   } catch (e) {
     const status = e?.response?.status;
     if (status && Math.trunc(status / 100) === 3) {
-      response = e.response;
+      console.log(
+        process.env.https_proxy
+          ? "PANIC: something wrong with the proxy"
+          : "Weird Redirects!"
+      );
+      process.exit(-1);
     }
   }
 
