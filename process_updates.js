@@ -136,7 +136,7 @@ function saveResultList(results) {
       } else {
         associations[message.message_id] = {
           idx,
-          title: null,
+          title: message.caption || null,
           audio: [message],
         };
       }
@@ -147,6 +147,22 @@ function saveResultList(results) {
 
   let results = Object.values(associations);
   results.sort((a, b) => a.idx - b.idx);
+
+  function extractDate(audio) {
+    return audio.forward_origin ? audio.forward_origin.date : audio.date;
+  }
+
+  function isComplete(item) {
+    return item && item.title && item.audio.length;
+  }
+
+  function isEmpty(item) {
+    return item && !item.title && !item.audio.length;
+  }
+
+  function isCompleteOrEmpty(item) {
+    return item && (isComplete(item) || isEmpty(item));
+  }
 
   for (let i = 0; i < results.length; i++) {
     const item = results[i];
@@ -160,30 +176,105 @@ function saveResultList(results) {
       } else if (prevItem && !prevItem.title && prevItem.audio.length) {
         item.audio = prevItem.audio;
         prevItem.audio = [];
+      } else {
+        console.log("orphan 1");
       }
     }
-  }
-
-  results = results.filter(
-    (it) => (it.title && it.audio.length) || (!it.title && it.audio.length)
-  );
-
-  for (let i = 0; i < results.length; i++) {
-    const item = results[i];
-    const prevItem = results[i - 1];
-    const nextItem = results[i + 1];
 
     if (!item.title && item.audio.length) {
-      // voice adjacent to voice
-      if (nextItem && nextItem.title && nextItem.audio.length) {
+      if (isCompleteOrEmpty(prevItem) && isCompleteOrEmpty(nextItem)) {
+        console.log("orphan 2");
+      } else if (
+        isCompleteOrEmpty(prevItem) &&
+        nextItem &&
+        nextItem.title &&
+        !nextItem.audio.length // next is a title message
+      ) {
+        // choose next
         nextItem.audio.push(...item.audio);
         item.audio = [];
-      } else if (prevItem && prevItem.title && prevItem.audio.length) {
+      } else if (
+        isCompleteOrEmpty(nextItem) &&
+        prevItem &&
+        prevItem.title &&
+        !prevItem.audio.length // prev is a title message
+      ) {
+        // choose prev
         prevItem.audio.push(...item.audio);
         item.audio = [];
+      } else {
+        if (isEmpty(prevItem)) {
+          let found = false;
+          // backtrack join
+          for (let b = i - 2; b > 0; b--) {
+            const backtrackItem = results[b];
+            if (backtrackItem.title && !backtrackItem.audio.length) {
+              break;
+            }
+
+            if (backtrackItem.title && backtrackItem.audio.length) {
+              backtrackItem.audio.push(...item.audio);
+              item.audio = [];
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            console.log("orphan 3");
+          }
+        } else if (
+          isComplete(prevItem) &&
+          nextItem &&
+          !nextItem.title &&
+          nextItem.audio.length // next is audio
+        ) {
+          // forwardtrack join
+          const accumulator = [];
+          for (let f = i; f < results.length; f++) {
+            const forwardtrackItem = results[f];
+            if (forwardtrackItem.title && forwardtrackItem.audio.length) {
+              break;
+            }
+
+            if (forwardtrackItem.title && !forwardtrackItem.audio.length) {
+              forwardtrackItem.audio = accumulator;
+              found = true;
+              break;
+            } else {
+              accumulator.push(...forwardtrackItem.audio);
+              forwardtrackItem.audio = [];
+            }
+          }
+
+          if (!found) {
+            console.log("orphan 4");
+          }
+        }
       }
     }
   }
+
+  // results = results.filter(
+  //   (it) => (it.title && it.audio.length) || (!it.title && it.audio.length)
+  // );
+
+  // for (let i = 0; i < results.length; i++) {
+  //   const item = results[i];
+  //   const prevItem = results[i - 1];
+  //   const nextItem = results[i + 1];
+
+  //   if (!item.title && item.audio.length) {
+  //     // voice adjacent to voice
+  //     if (nextItem && nextItem.title && nextItem.audio.length) {
+  //       nextItem.audio.push(...item.audio);
+  //       item.audio = [];
+  //     } else if (prevItem && prevItem.title && prevItem.audio.length) {
+  //       prevItem.audio.push(...item.audio);
+  //       item.audio = [];
+  //     }
+  //   }
+  // }
 
   results = results.filter((it) => it.title && it.audio.length);
 
