@@ -56,15 +56,13 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
   let fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
 
   try {
-    console.log("head");
-    const headRes = await axios.head(fileUrl, { maxRedirects: 0 });
-    console.log(headRes.status);
-    console.log(headRes.headers);
-    if (headRes.status % 100 === 3) {
-      fileUrl = headRes.headers["location"];
-    }
+    await axios.head(fileUrl, { maxRedirects: 0 });
   } catch (e) {
-    console.error(e);
+    const status = e?.response?.status;
+    const location = e?.response?.headers?.location;
+    if (location && status && status % 100 === 3) {
+      fileUrl = location;
+    }
   }
 
   const response = await axios({
