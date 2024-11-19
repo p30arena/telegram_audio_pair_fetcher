@@ -122,7 +122,7 @@ function saveResultList(results) {
     if (!message.chat || message.chat.id !== groupChatId) continue;
 
     if (!(message.audio || message.voice)) {
-      const text = message.text || "UNKNOWN";
+      const text = message.text || message.caption || "UNKNOWN";
       // Handle text messages
       if (
         message.reply_to_message &&
