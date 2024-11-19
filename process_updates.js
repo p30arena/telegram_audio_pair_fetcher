@@ -59,7 +59,8 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
     url: fileUrl,
     method: "GET",
     responseType: "stream",
-    beforeRedirect: (options, { headers }) => {
+    beforeRedirect: (options, { headers, statusCode }) => {
+      console.log(statusCode);
       console.log(headers);
     },
   });
