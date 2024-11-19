@@ -2,11 +2,13 @@ const { Telegraf } = require("telegraf");
 let axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const HttpsProxyAgent = require("https-proxy-agent");
 require("dotenv").config();
 
 let proxyAgent;
 if (process.env.https_proxy) {
-  proxyAgent = new require("https-proxy-agent")(process.env.https_proxy);
+  proxyAgent = new HttpsProxyAgent(process.env.https_proxy);
+  axios = axios.create({ httpsAgent: proxyAgent });
 }
 
 const bot = new Telegraf(process.env.BOT_TOKEN, {
@@ -16,8 +18,6 @@ const bot = new Telegraf(process.env.BOT_TOKEN, {
       }
     : undefined,
 });
-
-axios = axios.create({ httpsAgent: proxyAgent });
 
 // Replace with your group chat ID (e.g., -123456789)
 const groupChatId = Number(process.env.GROUP_CHAT_ID);
