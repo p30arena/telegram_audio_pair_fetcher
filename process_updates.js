@@ -28,13 +28,16 @@ async function downloadFile(fileId, fileUniqueId, mimeType, fileSize) {
     fs.accessSync(fileName, fs.constants.R_OK);
 
     if (fileSize) {
-      if (fs.statfsSync(fileName).bsize === fileSize) {
+      // console.log(fs.statSync(fileName).size, fileSize);
+      if (fs.statSync(fileName).size === fileSize) {
         return fileName;
       }
     } else {
       return fileName;
     }
-  } catch (e) {}
+  } catch (e) {
+    // console.error(e);
+  }
 
   const file = await bot.telegram.getFile(fileId);
   const fileUrl = `https://api.telegram.org/file/bot${process.env.BOT_TOKEN}/${file.file_path}`;
@@ -90,6 +93,7 @@ function saveResultList(results) {
       ) {
         if (associations[message.reply_to_message.message_id]) {
           associations[message.reply_to_message.message_id].title = text;
+          associations[message.reply_to_message.message_id].by_reply = true;
           // console.error("reply ok");
         } else {
           console.error("reply to ghost 1");
@@ -106,6 +110,7 @@ function saveResultList(results) {
       if (message.reply_to_message && message.reply_to_message.text) {
         if (associations[message.reply_to_message.message_id]) {
           associations[message.reply_to_message.message_id].audio = [message];
+          associations[message.reply_to_message.message_id].by_reply = true;
           // console.error("reply ok");
         } else {
           console.error("reply to ghost 2");
@@ -123,6 +128,7 @@ function saveResultList(results) {
           );
           if (item) {
             item.audio.push(message);
+            item.by_reply = true;
           } else {
             console.error("reply to ghost 3");
           }
@@ -211,6 +217,15 @@ function saveResultList(results) {
     saveResultList(results);
     console.log(`Complete: ${item.idx} / ${lastItem.idx}`);
   }
+
+  results = results
+    .map((r) => ({ ...r }))
+    .map((r) => {
+      delete r.audio;
+      return r;
+    });
+
+  saveResultList(results);
 
   console.log("Processing complete.");
 })();
