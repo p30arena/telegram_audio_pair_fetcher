@@ -8,7 +8,7 @@ require("dotenv").config();
 let proxyAgent;
 if (process.env.https_proxy) {
   proxyAgent = new HttpsProxyAgent(process.env.https_proxy);
-  axios = axios.create({ httpsAgent: proxyAgent });
+  axios = axios.create({ httpsAgent: proxyAgent, proxy: false });
 }
 
 const bot = new Telegraf(process.env.BOT_TOKEN, {
